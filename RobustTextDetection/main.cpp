@@ -16,6 +16,9 @@
 using namespace std;
 using namespace cv;
 
+// compile
+//  g++ $(pkg-config --cflags --libs opencv tesseract )  main.cpp  RobustTextDetection.cpp  ConnectedComponent.cpp -std=c++11
+
 
 int main(int argc, const char * argv[])
 {
@@ -23,7 +26,7 @@ int main(int argc, const char * argv[])
     namedWindow( "" );
     moveWindow("", 0, 0);
     
-    Mat image = imread( "/Users/saburookita/Personal Projects/RobustTextDetection/TestText.png" );
+    Mat image = imread( "./Test_Pic/TestText.png" );
     
     /* Quite a handful or params */
     RobustTextParam param;
@@ -43,7 +46,7 @@ int main(int argc, const char * argv[])
     
     /* Apply Robust Text Detection */
     /* ... remove this temp output path if you don't want it to write temp image files */
-    string temp_output_path = "/Users/saburookita/Personal Projects/RobustTextDetection/";
+    string temp_output_path = "./Temp";
     RobustTextDetection detector(param, temp_output_path );
     pair<Mat, Rect> result = detector.apply( image );
     
@@ -53,19 +56,24 @@ int main(int argc, const char * argv[])
     
     
     /* Use Tesseract to try to decipher our image */
+	  
     tesseract::TessBaseAPI tesseract_api;
-    tesseract_api.Init(NULL, "eng"  );
+    tesseract_api.Init("/Users/zhonghuasong/code/c++/tesseract/tessdata", "eng"  );
     tesseract_api.SetImage((uchar*) stroke_width.data, stroke_width.cols, stroke_width.rows, 1, stroke_width.cols);
     
     string out = string(tesseract_api.GetUTF8Text());
-
+    
+	
     /* Split the string by whitespace */
+    
     vector<string> splitted;
     istringstream iss( out );
     copy( istream_iterator<string>(iss), istream_iterator<string>(), back_inserter( splitted ) );
     
+    
     /* And draw them on screen */
-    CvFont font = cvFontQt("Helvetica", 24.0, CV_RGB(0, 0, 0) );
+    /*
+    CvFont font = fontQt("Helvetica", 24.0, CV_RGB(0, 0, 0) );
     Point coord = Point( result.second.br().x + 10, result.second.tl().y );
     for( string& line: splitted ) {
         addText( image, line, coord, font );
@@ -73,6 +81,7 @@ int main(int argc, const char * argv[])
     }
     
     rectangle( image, result.second, Scalar(0, 0, 255), 2);
+    */
     
     /* Append the original and stroke width images together */
     cvtColor( stroke_width, stroke_width, CV_GRAY2BGR );

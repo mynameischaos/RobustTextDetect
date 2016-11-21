@@ -28,18 +28,23 @@ RobustTextDetection::RobustTextDetection(RobustTextParam & param, string temp_im
  * text in binary format, and also the rect
  **/
 pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
+    // 将图像转换成灰度图
     Mat grey      = preprocessImage( image );
+    // MSER 返回的是轮廓的点，然后再将其转换成白色,也就是其掩码值
     Mat mser_mask = createMSERMask( grey );
     
     
     /* Perform canny edge operator to extract the edges */
     Mat edges;
+    // 利用OpenCV进行边缘检测，参考链接：http://lib.csdn.net/article/opencv/22741
     Canny( grey, edges, param.cannyThresh1, param.cannyThresh2 );
     
     
     /* Create the edge enhanced MSER region */
     Mat edge_mser_intersection  = edges & mser_mask;
+    //梯度方向是指向背景色
     Mat gradient_grown          = growEdges( grey, edge_mser_intersection );
+    //梯度的相反方向与轮廓点的交集
     Mat edge_enhanced_mser      = ~gradient_grown & mser_mask;
     
     /* Writing temporary output images */
@@ -168,13 +173,22 @@ Rect RobustTextDetection::clamp( Rect& rect, Size size ) {
  */
 Mat RobustTextDetection::createMSERMask( Mat& grey ) {
     /* Find MSER components */
-    vector<vector<Point>> contours;
+    vector<vector<Point> > contours;
     MSER mser( 8, param.minMSERArea, param.maxMSERArea, 0.25, 0.1, 100, 1.01, 0.03, 5 );
     mser(grey, contours);
+    
+
+    // Find MSER components
+    //Ptr<MSER> mserExtractor  = MSER::create( 8, param.minMSERArea, param.maxMSERArea, 0.25, 0.1, 100, 1.01, 0.03, 5 );
+    //vector<vector<Point> > contours;
+    //vector<cv::Rect> mserBbox;
+    //mserExtractor->detectRegions(grey, contours, mserBbox);
+    
     
     /* Create a binary mask out of the MSER */
     Mat mser_mask( grey.size(), CV_8UC1, Scalar(0));
     
+    // 将轮廓转换成白色
     for( int i = 0; i < contours.size(); i++ ) {
         for( Point& point: contours[i] )
             mser_mask.at<uchar>(point) = 255;

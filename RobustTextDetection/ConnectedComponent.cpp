@@ -21,11 +21,18 @@ ConnectedComponent::~ConnectedComponent(){
 }
 
 
+// 比较函数，升序
+bool Comp(ComponentProperty& a, ComponentProperty& b) {
+    return a.area > b.area;
+}
+
+
 /**
  * Apply connected component labeling
  * it only works for predefined maximum no of connected components
  * and currently treat black color as background
  */
+// 利用的是两次扫描的方法找连通区域 two-pass
 Mat ConnectedComponent::apply( const Mat& image ) {
     CV_Assert( !image.empty() );
     CV_Assert( image.channels() == 1 );
@@ -139,11 +146,11 @@ Mat ConnectedComponent::apply( const Mat& image ) {
         properties[i].centroid     = calculateBlobCentroid( moment );
         
         /* Find the solidity of the blob from blob area / convex area */
-        vector<vector<Point>> contours;
+        vector<vector<Point> > contours;
         findContours( blob, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
         
         if( !contours.empty() ) {
-            vector<vector<Point>> hull(1);
+            vector<vector<Point> > hull(1);
             convexHull( contours[0], hull[0] );
             
             /* ... I hope this is correct ... */
@@ -153,9 +160,10 @@ Mat ConnectedComponent::apply( const Mat& image ) {
     
     
     /* By default, sort the properties from the area size in descending order */
-    sort( properties.begin(), properties.end(), [=](ComponentProperty& a, ComponentProperty& b){
-        return a.area > b.area;
-    });
+    //sort( properties.begin(), properties.end(), [=](ComponentProperty& a, ComponentProperty& b){
+    //    return a.area > b.area;
+    //});
+    sort(properties.begin(), properties.end(), Comp);
     
     
     return result;
@@ -178,6 +186,7 @@ float ConnectedComponent::calculateBlobEccentricity( const Moments& moment ) {
 
 /**
  * From the given blob moment, calculate its centroid
+ // 计算连通区域的中心位置
  */
 Point2f ConnectedComponent::calculateBlobCentroid( const Moments& moment ) {
     return Point2f( moment.m10 / moment.m00, moment.m01 / moment.m00 );

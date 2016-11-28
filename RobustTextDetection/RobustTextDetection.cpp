@@ -44,7 +44,7 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
     Mat edge_mser_intersection  = edges & mser_mask;
     //梯度方向是指向背景色
     Mat gradient_grown          = growEdges( grey, edge_mser_intersection );
-    //梯度的相反方向与轮廓点的交集
+    //梯度的相反方向与mser部件的交集
     Mat edge_enhanced_mser      = ~gradient_grown & mser_mask;
     
     /* Writing temporary output images */
@@ -57,7 +57,10 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
         imwrite( tempImageDirectory + "/out_gradient_grown.png",         gradient_grown );
         imwrite( tempImageDirectory + "/out_edge_enhanced_mser.png",     edge_enhanced_mser );
     }
+
+    //前面的工作就是Canny与MSER做文字检测
     
+    //寻找连接部件
     /* Find the connected components */
     ConnectedComponent conn_comp( param.maxConnCompCount, 4);
     Mat labels = conn_comp.apply( edge_enhanced_mser );
@@ -65,6 +68,7 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
     
     
     Mat result( labels.size(), CV_8UC1, Scalar(0));
+    //过滤掉一些连通区域
     for( ComponentProperty& prop: props ) {
         /* Filtered out connected components that aren't within the criteria */
         if( prop.area < param.minConnCompArea || prop.area > param.maxConnCompArea )
@@ -76,6 +80,7 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
         if( prop.solidity < param.minSolidity )
             continue;
         
+        //???
         result |= (labels == prop.labelID);
     }
     
@@ -89,6 +94,7 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
     
     /* Filter the stroke width using connected component again */
     conn_comp   = ConnectedComponent( param.maxConnCompCount, 4);
+    // 把标记了笔画宽度的图像再检测一次连接部件
     labels      = conn_comp.apply( stroke_width );
     props       = conn_comp.getComponentsProperties();
     
@@ -108,6 +114,7 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
             return val > 0;
         });
         
+        // 求连接部件的均值和标准方差
         /* Find mean and std deviation for the connected components */
         double mean = std::accumulate( nonzero_vec.begin(), nonzero_vec.end(), 0.0 ) / area;
         
@@ -116,6 +123,7 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
             accum += (val - mean) * (val - mean );
         double std_dev = sqrt( accum / area );
         
+        //过滤掉一些部件
         /* Filter out those which are out of the prespecified ratio */
         if( (std_dev / mean) > param.maxStdDevMeanRatio  )
             continue;
@@ -124,6 +132,7 @@ pair<Mat, Rect> RobustTextDetection::apply( Mat& image ) {
         filtered_stroke_width |= mask;
     }
 
+    // TODO
     /* Use morphological close and open to create a large connected bounding region from the filtered stroke width */
     Mat bounding_region;
     morphologyEx( filtered_stroke_width, bounding_region, MORPH_CLOSE, getStructuringElement( MORPH_ELLIPSE, Size(25, 25)) );
@@ -343,6 +352,7 @@ inline bitset<8> RobustTextDetection::getNeighborsLessThan( int * curr_ptr, int 
 
 
 /**
+// 传播每个连接部件的最大值，从山脊到边缘，都赋予相同的值
  * Compute the stroke width image out from the distance transform matrix
  * It will propagate the max values of each connected component from the ridge
  * to outer boundaries

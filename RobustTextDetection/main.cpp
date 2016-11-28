@@ -17,7 +17,7 @@ using namespace std;
 using namespace cv;
 
 // compile
-//  g++ $(pkg-config --cflags --libs opencv tesseract )  main.cpp  RobustTextDetection.cpp  ConnectedComponent.cpp -std=c++11
+//  g++ $(pkg-config --cflags --libs opencv tesseract)  main.cpp  RobustTextDetection.cpp  ConnectedComponent.cpp -std=c++11
 
 
 int main(int argc, const char * argv[])
@@ -26,28 +26,30 @@ int main(int argc, const char * argv[])
     namedWindow( "" );
     moveWindow("", 0, 0);
     
-    Mat image = imread( "./Test_Pic/TestText.png" );
+    //Mat image = imread( "./Test_Pic/TestText.png" );
     
+    Mat image = imread( argv[1] );
+
     /* Quite a handful or params */
     RobustTextParam param;
-    param.minMSERArea        = 10;
-    param.maxMSERArea        = 2000;
-    param.cannyThresh1       = 20;
-    param.cannyThresh2       = 100;
+    param.minMSERArea        = 5;    //10
+    param.maxMSERArea        = 2000;  //2000
+    param.cannyThresh1       = 5;     //20
+    param.cannyThresh2       = 80;    //100
     
-    param.maxConnCompCount   = 3000;
-    param.minConnCompArea    = 75;
-    param.maxConnCompArea    = 600;
+    param.maxConnCompCount   = 3000;  //3000
+    param.minConnCompArea    = 75;    //75
+    param.maxConnCompArea    = 800;   //600
     
-    param.minEccentricity    = 0.1;
-    param.maxEccentricity    = 0.995;
-    param.minSolidity        = 0.4;
-    param.maxStdDevMeanRatio = 0.5;
+    param.minEccentricity    = 0.1;   //0.1
+    param.maxEccentricity    = 0.995; //0.995
+    param.minSolidity        = 0.1;   //0.4
+    param.maxStdDevMeanRatio = 0.5;   //0.5
     
     /* Apply Robust Text Detection */
     /* ... remove this temp output path if you don't want it to write temp image files */
     string temp_output_path = "./Temp";
-    RobustTextDetection detector(param, temp_output_path );
+    RobustTextDetection detector(param, temp_output_path);
     pair<Mat, Rect> result = detector.apply( image );
     
     /* Get the region where the candidate text is */

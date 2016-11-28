@@ -37,6 +37,7 @@ Mat ConnectedComponent::apply( const Mat& image ) {
     CV_Assert( !image.empty() );
     CV_Assert( image.channels() == 1 );
     
+    // 边缘增加一个像素，为了去除边缘检查
     /* Padding the image with 1 pixel border, just to remove boundary checks */
     Mat result( image.rows + 2, image.cols + 2, image.type(), Scalar(0) );
     image.copyTo( Mat( result, Rect(1, 1, image.cols, image.rows) ) );
@@ -57,6 +58,7 @@ Mat ConnectedComponent::apply( const Mat& image ) {
     
     
     /* Preparing the pointers */
+    // 表示第几行像素
     int * prev_ptr = result.ptr<int>(0);
     int * curr_ptr = result.ptr<int>(1);
     
@@ -106,7 +108,7 @@ Mat ConnectedComponent::apply( const Mat& image ) {
         curr_ptr = next_ptr;
     }
     
-    
+    //去除增加的边缘像素
     /* Remove our padding borders */
     result = Mat( result, Rect(1, 1, image.cols, image.rows) );
     
@@ -134,6 +136,7 @@ Mat ConnectedComponent::apply( const Mat& image ) {
     
     /* Gather the properties of each blob */
     properties.resize( labels.size() );
+    cout << "labels size: " << labels.size() << endl;
     for( int i = 0; i < labels.size(); i++ ) {
         Mat blob        = result == labels[i];
         
@@ -145,6 +148,7 @@ Mat ConnectedComponent::apply( const Mat& image ) {
         properties[i].eccentricity = calculateBlobEccentricity( moment );
         properties[i].centroid     = calculateBlobCentroid( moment );
         
+        //找到blob体积
         /* Find the solidity of the blob from blob area / convex area */
         vector<vector<Point> > contours;
         findContours( blob, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
@@ -174,6 +178,7 @@ Mat ConnectedComponent::apply( const Mat& image ) {
  * It's implemented based on the formula shown on http://en.wikipedia.org/wiki/Image_moment#Examples_2
  * which includes using the blob's central moments to find the eigenvalues
  */
+//计算离心率
 float ConnectedComponent::calculateBlobEccentricity( const Moments& moment ) {
     double left_comp  = (moment.nu20 + moment.nu02) / 2.0;
     double right_comp = sqrt( (4 * moment.nu11 * moment.nu11) + (moment.nu20 - moment.nu02)*(moment.nu20 - moment.nu02) ) / 2.0;
